@@ -67,6 +67,7 @@
 	</Dialog>
 </template>
 <script setup>
+import TeamsSettings from '@/components/Settings/TeamsSettings.vue'
 import { Dialog, createDocumentResource } from 'frappe-ui'
 import { computed, markRaw, ref, watch } from 'vue'
 import { useSettings } from '@/stores/settings'
@@ -260,6 +261,12 @@ const tabsStructure = computed(() => {
 						'Manage zoom accounts to conduct live classes from batches',
 					icon: 'Video',
 					template: markRaw(ZoomSettings),
+				},
+				{
+					label: 'Teams Accounts',
+					description: 'Manage Microsoft Teams accounts to conduct live classes',
+					icon: 'Video',
+					template: markRaw(TeamsSettings),
 				},
 				{
 					label: 'Badges',

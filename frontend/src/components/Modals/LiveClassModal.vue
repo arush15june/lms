@@ -37,6 +37,12 @@
 								:required="true"
 							/>
 						</Tooltip>
+						<FormControl
+							v-model="liveClass.auto_recording"
+							type="select"
+							:options="getRecordingOptions()"
+							:label="__('Auto Recording')"
+						/>
 					</div>
 					<div class="space-y-4">
 						<Tooltip
@@ -67,10 +73,17 @@
 							/>
 						</div>
 						<FormControl
-							v-model="liveClass.auto_recording"
+							v-model="liveClass.meeting_provider"
 							type="select"
-							:options="getRecordingOptions()"
-							:label="__('Auto Recording')"
+							:options="['LMS Zoom Settings', 'LMS Teams Settings']"
+							:label="__('Meeting Provider')"
+							:required="true"
+						/>
+						<Link
+							:doctype="liveClass.meeting_provider"
+							v-model="liveClass.meeting_account"
+							:label="__('Meeting Account')"
+							:required="true"
 						/>
 					</div>
 				</div>
@@ -85,15 +98,17 @@
 </template>
 <script setup>
 import {
-	Dialog,
-	createResource,
-	Tooltip,
-	FormControl,
-	Autocomplete,
-	toast,
+    Dialog,
+    createResource,
+    Tooltip,
+    FormControl,
+    Autocomplete,
+    toast,
+    Button,
 } from 'frappe-ui'
-import { reactive, inject, onMounted } from 'vue'
+import { reactive, inject, onMounted, ref } from 'vue'
 import { getTimezones, getUserTimezone } from '@/utils/'
+import Link from '@/components/Controls/Link.vue'
 
 const liveClasses = defineModel('reloadLiveClasses')
 const show = defineModel()
@@ -101,140 +116,107 @@ const user = inject('$user')
 const dayjs = inject('$dayjs')
 
 const props = defineProps({
-	batch: {
-		type: String,
-		required: true,
-	},
-	zoomAccount: {
-		type: String,
-		required: true,
-	},
+    batch: {
+        type: String,
+        required: true,
+    },
 })
 
 let liveClass = reactive({
-	title: '',
-	description: '',
-	date: '',
-	time: '',
-	duration: '',
-	timezone: '',
-	auto_recording: 'No Recording',
-	batch: props.batch,
-	host: user.data.name,
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    duration: '',
+    timezone: '',
+    auto_recording: 'No Recording',
+    batch_name: props.batch,
+    host: user.data.name,
+    meeting_provider: 'LMS Zoom Settings',
+    meeting_account: '',
 })
 
 onMounted(() => {
-	liveClass.timezone = getUserTimezone()
+    liveClass.timezone = getUserTimezone()
 })
 
 const getTimezoneOptions = () => {
-	return getTimezones().map((timezone) => {
-		return {
-			label: timezone,
-			value: timezone,
-		}
-	})
+    return getTimezones().map((timezone) => {
+        return {
+            label: timezone,
+            value: timezone,
+        }
+    })
 }
 
 const getRecordingOptions = () => {
-	return [
-		{
-			label: 'No Recording',
-			value: 'No Recording',
-		},
-		{
-			label: 'Local',
-			value: 'Local',
-		},
-		{
-			label: 'Cloud',
-			value: 'Cloud',
-		},
-	]
+    return [
+        { label: 'No Recording', value: 'No Recording' },
+        { label: 'Local', value: 'Local' },
+        { label: 'Cloud', value: 'Cloud' },
+    ]
 }
 
 const createLiveClass = createResource({
-	url: 'lms.lms.doctype.lms_batch.lms_batch.create_live_class',
-	makeParams(values) {
-		return {
-			doctype: 'LMS Live Class',
-			batch_name: values.batch,
-			zoom_account: props.zoomAccount,
-			...values,
-		}
-	},
+    url: 'lms.lms.doctype.lms_batch.lms_batch.create_live_class',
+    makeParams(values) {
+        return {
+            ...values,
+        }
+    },
 })
 
 const submitLiveClass = (close) => {
-	return createLiveClass.submit(liveClass, {
-		validate() {
-			validateFormFields()
-		},
-		onSuccess() {
-			liveClasses.value.reload()
-			refreshForm()
-			close()
-		},
-		onError(err) {
-			toast.error(err.messages?.[0] || err)
-		},
-	})
+    return createLiveClass.submit(liveClass, {
+        validate() {
+            return validateFormFields()
+        },
+        onSuccess() {
+            liveClasses.value.reload()
+            refreshForm()
+            close()
+        },
+        onError(err) {
+            toast.error(err.messages?.[0] || err)
+        },
+    })
 }
 
 const validateFormFields = () => {
-	if (!liveClass.title) {
-		return __('Please enter a title.')
-	}
-	if (!liveClass.date) {
-		return __('Please select a date.')
-	}
-	if (!liveClass.time) {
-		return __('Please select a time.')
-	}
-	if (!liveClass.timezone) {
-		return __('Please select a timezone.')
-	}
-	if (!valideTime()) {
-		return __('Please enter a valid time in the format HH:mm.')
-	}
-	const liveClassDateTime = dayjs(`${liveClass.date}T${liveClass.time}`).tz(
-		liveClass.timezone,
-		true
-	)
-	if (
-		liveClassDateTime.isSameOrBefore(
-			dayjs().tz(liveClass.timezone, false),
-			'minute'
-		)
-	) {
-		return __('Please select a future date and time.')
-	}
-	if (!liveClass.duration) {
-		return __('Please select a duration.')
-	}
+    if (!liveClass.title) return __('Please enter a title.')
+    if (!liveClass.date) return __('Please select a date.')
+    if (!liveClass.time) return __('Please select a time.')
+    if (!liveClass.timezone) return __('Please select a timezone.')
+    if (!valideTime()) return __('Please enter a valid time in the format HH:mm.')
+    
+    const liveClassDateTime = dayjs(`${liveClass.date}T${liveClass.time}`).tz(
+        liveClass.timezone,
+        true
+    )
+    if (liveClassDateTime.isSameOrBefore(dayjs().tz(liveClass.timezone, false), 'minute')) {
+        return __('Please select a future date and time.')
+    }
+    if (!liveClass.duration) return __('Please select a duration.')
+    if (!liveClass.meeting_account) return __('Please select a meeting account.')
 }
 
 const valideTime = () => {
-	let time = liveClass.time.split(':')
-	if (time.length != 2) {
-		return false
-	}
-	if (time[0] < 0 || time[0] > 23) {
-		return false
-	}
-	if (time[1] < 0 || time[1] > 59) {
-		return false
-	}
-	return true
+    let time = liveClass.time.split(':')
+    if (time.length != 2) return false
+    if (parseInt(time[0]) < 0 || parseInt(time[0]) > 23) return false
+    if (parseInt(time[1]) < 0 || parseInt(time[1]) > 59) return false
+    return true
 }
 
 const refreshForm = () => {
-	liveClass.title = ''
-	liveClass.description = ''
-	liveClass.date = ''
-	liveClass.time = ''
-	liveClass.duration = ''
-	liveClass.timezone = getUserTimezone()
-	liveClass.auto_recording = 'No Recording'
+    liveClass.title = ''
+    liveClass.description = ''
+    liveClass.date = ''
+    liveClass.time = ''
+    liveClass.duration = ''
+    liveClass.timezone = getUserTimezone()
+    liveClass.auto_recording = 'No Recording'
+    liveClass.meeting_provider = 'LMS Zoom Settings'
+    liveClass.meeting_account = ''
 }
 </script>

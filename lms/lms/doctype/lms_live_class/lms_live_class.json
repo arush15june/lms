@@ -137,12 +137,20 @@
    "read_only": 1
   },
   {
-   "fieldname": "zoom_account",
-   "fieldtype": "Link",
-   "label": "Zoom Account",
-   "options": "LMS Zoom Settings",
-   "reqd": 1
-  },
+    "fieldname": "meeting_provider",
+    "fieldtype": "Select",
+    "label": "Meeting Provider",
+    "options": "LMS Zoom Settings\nLMS Teams Settings",
+    "default": "LMS Zoom Settings",
+    "reqd": 1
+   },
+   {
+    "fieldname": "zoom_account",
+    "fieldtype": "Dynamic Link",
+    "label": "Meeting Account",
+    "options": "meeting_provider",
+    "reqd": 1
+   },
   {
    "fieldname": "meeting_id",
    "fieldtype": "Data",

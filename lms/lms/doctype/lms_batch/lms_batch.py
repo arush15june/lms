@@ -9,7 +9,8 @@ import frappe
 import requests
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, format_datetime, get_time, nowdate
+from lms.lms.teams import create_teams_meeting
+from frappe.utils import add_days, cint, format_datetime, get_datetime, get_time, nowdate
 
 from lms.lms.utils import (
 	generate_slug,
@@ -136,58 +137,97 @@ class LMSBatch(Document):
 
 @frappe.whitelist()
 def create_live_class(
-	batch_name,
-	zoom_account,
-	title,
-	duration,
-	date,
-	time,
-	timezone,
-	auto_recording,
-	description=None,
+    batch_name,
+    meeting_provider,
+    meeting_account,
+    title,
+    duration,
+    date,
+    time,
+    timezone,
+    auto_recording,
+    description=None,
 ):
-	payload = {
-		"topic": title,
-		"start_time": format_datetime(f"{date} {time}", "yyyy-MM-ddTHH:mm:ssZ"),
-		"duration": duration,
-		"agenda": description,
-		"private_meeting": True,
-		"auto_recording": "none" if auto_recording == "No Recording" else auto_recording.lower(),
-		"timezone": timezone,
-	}
-	headers = {
-		"Authorization": "Bearer " + authenticate(zoom_account),
-		"content-type": "application/json",
-	}
-	response = requests.post(
-		"https://api.zoom.us/v2/users/me/meetings", headers=headers, data=json.dumps(payload)
-	)
+    if meeting_provider == "LMS Zoom Settings":
+        payload = {
+            "topic": title,
+            "start_time": format_datetime(f"{date} {time}", "yyyy-MM-ddTHH:mm:ssZ"),
+            "duration": duration,
+            "agenda": description,
+            "private_meeting": True,
+            "auto_recording": "none" if auto_recording == "No Recording" else auto_recording.lower(),
+            "timezone": timezone,
+        }
+        headers = {
+            "Authorization": "Bearer " + authenticate(meeting_account),
+            "content-type": "application/json",
+        }
+        response = requests.post(
+            "https://api.zoom.us/v2/users/me/meetings", headers=headers, data=json.dumps(payload)
+        )
 
-	if response.status_code == 201:
-		data = json.loads(response.text)
-		payload.update(
-			{
-				"doctype": "LMS Live Class",
-				"start_url": data.get("start_url"),
-				"join_url": data.get("join_url"),
-				"meeting_id": data.get("id"),
-				"uuid": data.get("uuid"),
-				"title": title,
-				"host": frappe.session.user,
-				"date": date,
-				"time": time,
-				"batch_name": batch_name,
-				"password": data.get("password"),
-				"description": description,
-				"auto_recording": auto_recording,
-				"zoom_account": zoom_account,
-			}
-		)
-		class_details = frappe.get_doc(payload)
-		class_details.save()
-		return class_details
-	else:
-		frappe.throw(_("Error creating live class. Please try again. {0}").format(response.text))
+        if response.status_code == 201:
+            data = json.loads(response.text)
+            payload.update(
+                {
+                    "doctype": "LMS Live Class",
+                    "start_url": data.get("start_url"),
+                    "join_url": data.get("join_url"),
+                    "meeting_id": data.get("id"),
+                    "uuid": data.get("uuid"),
+                    "title": title,
+                    "host": frappe.session.user,
+                    "date": date,
+                    "time": time,
+                    "batch_name": batch_name,
+                    "password": data.get("password"),
+                    "description": description,
+                    "auto_recording": auto_recording,
+                    "meeting_provider": "LMS Zoom Settings",
+                    "meeting_account": meeting_account,
+                }
+            )
+            class_details = frappe.get_doc(payload)
+            class_details.save()
+            return class_details
+        else:
+            frappe.throw(_("Error creating live class. Please try again. {0}").format(response.text))
+
+    elif meeting_provider == "LMS Teams Settings":
+        teams_settings = frappe.get_doc("LMS Teams Settings", meeting_account)
+        user_id_for_meeting = teams_settings.member
+
+        start_datetime_obj = get_datetime(f"{date} {time}")
+        end_datetime_obj = start_datetime_obj + timedelta(minutes=cint(duration))
+
+        start_time_iso = start_datetime_obj.isoformat()
+        end_time_iso = end_datetime_obj.isoformat()
+
+        meeting_data = create_teams_meeting(
+            teams_account=meeting_account,
+            subject=title,
+            start_time=start_time_iso,
+            end_time=end_time_iso,
+            user_id=user_id_for_meeting,
+        )
+
+        payload = {
+            "doctype": "LMS Live Class",
+            "title": title,
+            "host": frappe.session.user,
+            "date": date,
+            "time": time,
+            "duration": duration,
+            "batch_name": batch_name,
+            "meeting_provider": "LMS Teams Settings",
+            "meeting_account": meeting_account,
+            "join_url": meeting_data.get("joinUrl"),
+            "start_url": meeting_data.get("joinUrl"),
+            "meeting_id": meeting_data.get("id"),
+        }
+        class_details = frappe.get_doc(payload)
+        class_details.save()
+        return class_details
 
 
 def authenticate(zoom_account):
