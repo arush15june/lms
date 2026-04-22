@@ -15,6 +15,8 @@ jobs:
         arch: [amd64, arm64]
     permissions:
       packages: write
+    env:
+      APPS_JSON_PATH: /tmp/apps.json
     steps:
       - name: Checkout Entire Repository
         uses: actions/checkout@v4
@@ -31,25 +33,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set Branch
+      - name: Create apps.json
         run: |
-          export APPS_JSON='[{"url": "https://github.com/frappe/payments","branch": "version-16"},{"url": "https://github.com/arush15june/lms","branch": "develop"}]'
-          echo "APPS_JSON_BASE64=$(echo $APPS_JSON | base64 -w 0)" >> $GITHUB_ENV
-          echo "FRAPPE_BRANCH=version-16" >> $GITHUB_ENV
-
-      - name: Create apps.json file
-        run: |
-          echo "${{ env.APPS_JSON_BASE64 }}" > /tmp/apps.json
+          cat > "$APPS_JSON_PATH" <<'EOF'
+          [
+            {"url": "https://github.com/frappe/payments", "branch": "version-16"},
+            {"url": "https://github.com/arush15june/lms", "branch": "develop"}
+          ]
+          EOF
 
       - name: Set Image Tag
         run: |
           echo "IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "FRAPPE_BRANCH=version-16" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
         with:
           repository: frappe/frappe_docker
           path: builds
+
       - name: Build and push
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v6
         with:
           push: true
           context: builds
@@ -58,7 +62,6 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.ref_name }},
             ghcr.io/${{ github.repository }}:${{ env.IMAGE_TAG }}
           build-args: |
-            "FRAPPE_BRANCH=${{ env.FRAPPE_BRANCH }}"
-            "APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}"
-          secret-files: |
-            apps_json=/tmp/apps.json
+            FRAPPE_BRANCH=${{ env.FRAPPE_BRANCH }}
+          secrets: |
+            id=apps_json,src=${{ env.APPS_JSON_PATH }}
