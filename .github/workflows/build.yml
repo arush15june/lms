@@ -37,7 +37,7 @@ jobs:
         run: |
           cat > "$APPS_JSON_PATH" <<'EOF'
           [
-            {"url": "https://github.com/frappe/payments", "branch": "version-16"},
+            {"url": "https://github.com/frappe/payments", "branch": "version-15"},
             {"url": "https://github.com/arush15june/lms", "branch": "develop"}
           ]
           EOF
@@ -45,7 +45,7 @@ jobs:
       - name: Set Image Tag
         run: |
           echo "IMAGE_TAG=stable" >> $GITHUB_ENV
-          echo "FRAPPE_BRANCH=version-16" >> $GITHUB_ENV
+          echo "FRAPPE_BRANCH=version-15" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
