@@ -53,7 +53,7 @@ jobs:
           path: builds
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           context: builds
@@ -63,5 +63,5 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ env.IMAGE_TAG }}
           build-args: |
             FRAPPE_BRANCH=${{ env.FRAPPE_BRANCH }}
-          secrets: |
-            id=apps_json,src=${{ env.APPS_JSON_PATH }}
+          secret-files: |
+            apps_json=${{ env.APPS_JSON_PATH }}
