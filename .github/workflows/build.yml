@@ -10,21 +10,16 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         arch: [amd64, arm64]
-
     permissions:
       packages: write
-
     steps:
       - name: Checkout Entire Repository
         uses: actions/checkout@v4
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -35,12 +30,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Set Branch
         run: |
           export APPS_JSON='[{"url": "https://github.com/frappe/payments","branch": "version-16"},{"url": "https://github.com/arush15june/lms","branch": "develop"}]'
           echo "APPS_JSON_BASE64=$(echo $APPS_JSON | base64 -w 0)" >> $GITHUB_ENV
           echo "FRAPPE_BRANCH=version-16" >> $GITHUB_ENV
+
+      - name: Create apps.json file
+        run: |
+          echo "${{ env.APPS_JSON_BASE64 }}" > /tmp/apps.json
 
       - name: Set Image Tag
         run: |
@@ -49,7 +48,6 @@ jobs:
         with:
           repository: frappe/frappe_docker
           path: builds
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -62,5 +60,5 @@ jobs:
           build-args: |
             "FRAPPE_BRANCH=${{ env.FRAPPE_BRANCH }}"
             "APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}"
-          secrets: |
-            "apps_json=${{ env.APPS_JSON }}"
+          secret-files: |
+            apps_json=/tmp/apps.json
