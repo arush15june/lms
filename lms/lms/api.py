@@ -231,6 +231,31 @@ def get_job_details(job: str):
 	)
 
 
+@frappe.whitelist()
+def get_application_users(user_names: list | str):
+	# temp function workaround:reverting once upstream restores dotted-field JOINs in `frappe.client.get_list`
+	if isinstance(user_names, str):
+		user_names = json.loads(user_names)
+	if not user_names:
+		return []
+
+	visible = frappe.get_list(
+		"LMS Job Application",
+		filters={"user": ["in", user_names]},
+		fields=["user"],
+		pluck="user",
+	)
+	visible_user_names = list(set(visible))
+	if not visible_user_names:
+		return []
+
+	return frappe.get_all(
+		"User",
+		filters={"name": ["in", visible_user_names]},
+		fields=["name", "user_image", "full_name", "email"],
+	)
+
+
 def sanitize_job_filters(filters, or_filters):
 	ALLOWED_FILTERS = ("status", "type", "work_mode", "country")
 	ALLOWED_OR_FILTERS = ("job_title", "company_name", "location")
@@ -246,8 +271,17 @@ def sanitize_job_filters(filters, or_filters):
 
 @frappe.whitelist(allow_guest=True)
 def get_job_opportunities(
-	filters: dict = None, or_filters: dict = None, start: int = 0, page_length: int = 40
+	filters: dict = None,
+	or_filters: dict = None,
+	start: int = 0,
+	page_length: int = 40,
+	limit_start: int = None,
+	limit_page_length: int = None,
 ):
+	if limit_page_length is not None:
+		page_length = cint(limit_page_length)
+	if limit_start is not None:
+		start = cint(limit_start)
 	filters, or_filters = sanitize_job_filters(filters, or_filters)
 
 	jobs = frappe.get_all(
@@ -366,13 +400,24 @@ def get_evaluator_details(evaluator: str):
 
 
 @frappe.whitelist()
-def get_certified_participants(filters: dict = None, start: int = 0, page_length: int = 40):
+def get_certified_participants(
+	filters: dict = None,
+	start: int = 0,
+	page_length: int = 40,
+	limit_start: int = None,
+	limit_page_length: int = None,
+):
+	if limit_page_length is not None:
+		page_length = cint(limit_page_length)
+	if limit_start is not None:
+		start = cint(limit_start)
 	query = get_certification_query(filters)
 	query = query.orderby("issue_date", order=frappe.qb.desc).offset(start).limit(page_length)
 	participants = query.run(as_dict=True)
 	for participant in participants:
 		details = get_certified_participant_details(participant.member)
 		participant.update(details)
+		participant.pop("member", None)
 
 	return participants
 
@@ -1377,6 +1422,10 @@ def get_lms_settings():
 		"disable_pwa",
 		"allow_job_posting",
 		"demo_data_present",
+		"lesson_dwell_time",
+		"enforce_video_completion",
+		"enforce_quiz_completion",
+		"enforce_assignment_completion",
 	]
 
 	settings = frappe._dict()
@@ -2345,14 +2394,22 @@ def clear_demo_data():
 
 
 @frappe.whitelist()
-def search_users_by_role(txt: str = "", roles: str | list | None = None, page_length: int = 10):
-	"""Returns users with `roles` in search_link format"""
+def search_users_by_role(
+	txt: str = "",
+	roles: str | list | None = None,
+	page_length: int = 10,
+	names: str | list | None = None,
+):
+	"""Returns users with `roles` in search_link format. `names` skips the txt match and returns those users directly."""
 	frappe.only_for(["Moderator", "Course Creator", "Batch Evaluator"])
 	if not roles:
 		return []
 
 	if isinstance(roles, str):
 		roles = json.loads(roles)
+
+	if isinstance(names, str):
+		names = json.loads(names)
 
 	invalid_roles = set(roles) - set(LMS_ROLES)
 	if invalid_roles:
@@ -2368,24 +2425,38 @@ def search_users_by_role(txt: str = "", roles: str | list | None = None, page_le
 	if not users_with_roles:
 		return []
 
-	results = frappe.get_all(
-		"User",
-		filters=[
-			["name", "in", users_with_roles],
-			["name", "not in", ["Administrator", "Guest"]],
-			["enabled", "=", 1],
-		],
-		or_filters=[
+	filters = [
+		["name", "in", users_with_roles],
+		["name", "not in", ["Administrator", "Guest"]],
+		["enabled", "=", 1],
+	]
+	or_filters = None
+	limit = cint(page_length)
+	if names:
+		filters.append(["name", "in", names])
+		limit = len(names)
+	else:
+		or_filters = [
 			["full_name", "like", f"%{txt}%"],
 			["name", "like", f"%{txt}%"],
-		],
-		fields=["name", "full_name"],
-		limit_page_length=cint(page_length),
+		]
+
+	results = frappe.get_all(
+		"User",
+		filters=filters,
+		or_filters=or_filters,
+		fields=["name", "full_name", "user_image"],
+		limit_page_length=limit,
 		order_by="full_name asc",
 	)
 
 	return [
-		{"value": r.name, "description": r.full_name or r.name, "label": r.full_name or r.name}
+		{
+			"value": r.name,
+			"description": r.full_name or r.name,
+			"label": r.full_name or r.name,
+			"user_image": r.user_image,
+		}
 		for r in results
 	]
 

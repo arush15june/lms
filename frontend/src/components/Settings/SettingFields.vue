@@ -5,15 +5,25 @@
 				{{ section.label }}
 			</div>
 			<div
-				:class="{
-					'flex justify-between gap-x-8 w-full': section.columns.length > 1,
-				}"
+				:class="
+					section.columns.length > 1
+						? 'grid grid-cols-2 gap-x-8 gap-y-5 w-full items-start'
+						: 'w-full space-y-5'
+				"
 			>
-				<div
-					v-for="(column, index) in section.columns"
-					class="w-full space-y-5"
+				<template
+					v-for="(column, columnIndex) in section.columns"
+					:key="columnIndex"
 				>
-					<div v-for="field in column.fields">
+					<div
+						v-for="(field, fieldIndex) in column.fields"
+						:key="`${columnIndex}-${fieldIndex}`"
+						:style="
+							section.columns.length > 1
+								? { gridColumn: columnIndex + 1, gridRow: fieldIndex + 1 }
+								: {}
+						"
+					>
 						<Link
 							v-if="field.type == 'Link'"
 							v-model="data[field.name]"
@@ -49,7 +59,7 @@
 								v-if="!data[field.name]"
 								:fileTypes="['image/*']"
 								:validateFile="validateFile"
-								@success="(file) => (data[field.name] = file)"
+								@success="(file) => (data[field.name] = file.file_url)"
 							>
 								<template
 									v-slot="{ file, progress, uploading, openFileSelector }"
@@ -70,23 +80,14 @@
 										:class="field.size == 'lg' ? 'px-5 py-5' : 'px-20 py-8'"
 									>
 										<img
-											:src="data[field.name]?.file_url || data[field.name]"
+											:src="data[field.name]"
 											class="rounded"
 											:class="field.size == 'lg' ? 'w-36' : 'size-6'"
 										/>
 									</div>
 									<div class="flex flex-col flex-wrap">
 										<span class="break-all text-ink-gray-9">
-											{{
-												data[field.name]?.file_name ||
-												data[field.name].split('/').pop()
-											}}
-										</span>
-										<span
-											v-if="data[field.name]?.file_size"
-											class="text-sm text-ink-gray-5 mt-1"
-										>
-											{{ getFileSize(data[field.name]?.file_size) }}
+											{{ data[field.name].split('/').pop() }}
 										</span>
 									</div>
 									<X
@@ -105,7 +106,7 @@
 						/>
 						<!-- <div v-else>
 							{{ data[field.name] }}
-							
+
 						</div> -->
 						<FormControl
 							v-else
@@ -120,15 +121,16 @@
 							placeholder=""
 						/>
 					</div>
-				</div>
+				</template>
 			</div>
 		</div>
 	</div>
 </template>
 <script setup>
-import { FormControl, FileUploader, Button, Switch } from 'frappe-ui'
-import { computed, onMounted, watch } from 'vue'
-import { getFileSize, validateFile } from '@/utils'
+import { FormControl, FileUploader, Button } from 'frappe-ui'
+import Switch from '@/components/Controls/Switch.vue'
+import { onMounted, watch } from 'vue'
+import { validateFile } from '@/utils'
 import { X } from 'lucide-vue-next'
 import Link from '@/components/Controls/Link.vue'
 import CodeEditor from '@/components/Controls/CodeEditor.vue'
@@ -144,15 +146,21 @@ const props = defineProps({
 	},
 })
 
+const resolveInitialValue = (field, dataValue) => {
+	if (dataValue !== null && dataValue !== undefined && dataValue !== '') {
+		return field.type === 'checkbox' ? !!dataValue : dataValue
+	}
+	if (field.default !== undefined) {
+		return field.type === 'checkbox' ? !!field.default : field.default
+	}
+	return field.type === 'checkbox' ? false : ''
+}
+
 onMounted(() => {
 	props.sections.forEach((section) => {
 		section.columns.forEach((column) => {
 			column.fields.forEach((field) => {
-				if (field.type == 'checkbox') {
-					field.value = props.data[field.name] ? true : false
-				} else {
-					field.value = props.data[field.name]
-				}
+				field.value = resolveInitialValue(field, props.data[field.name])
 			})
 		})
 	})
@@ -161,10 +169,14 @@ onMounted(() => {
 watch(
 	props.sections,
 	(newSections) => {
-		// Makes the form dirty on change
+		// Only checkboxes v-model on field.value; sync them to data so the
+		// document resource sees the change. Non-checkbox fields v-model
+		// directly against data and must NOT be touched here — otherwise the
+		// stale field.value clobbers user input whenever any checkbox toggles.
 		newSections.forEach((section) => {
 			section.columns.forEach((column) => {
 				column.fields.forEach((field) => {
+					if (field.type !== 'checkbox') return
 					if (props.data[field.name] != field.value) {
 						props.data[field.name] = field.value
 					}
