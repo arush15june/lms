@@ -1,8 +1,6 @@
 <template>
 	<div v-if="instructors?.length" class="border-2 rounded-md p-5">
-		<div
-			class="uppercase text-ink-gray-5 text-xs font-semibold tracking-wider mb-4"
-		>
+		<div class="uppercase text-ink-gray-5 text-xs-semibold tracking-wider mb-4">
 			{{ headerLabel }}
 		</div>
 
@@ -18,12 +16,11 @@
 					</div>
 				</div>
 			</router-link>
-			<p
-				v-if="instructors[0].bio"
-				class="text-p-sm text-ink-gray-7 leading-6 mt-4 line-clamp-3"
-			>
-				{{ instructors[0].bio }}
-			</p>
+			<div
+				v-if="hasBio(instructors[0].bio)"
+				v-html="renderBio(instructors[0].bio)"
+				class="ProseMirror prose prose-sm max-w-none text-p-sm text-ink-gray-7 leading-6 mt-4 line-clamp-3"
+			></div>
 		</template>
 
 		<template v-else>
@@ -39,16 +36,15 @@
 					</div>
 				</div>
 			</router-link>
-			<p
-				v-if="focused?.bio"
-				class="text-p-sm text-ink-gray-7 leading-6 mt-4 line-clamp-3"
-			>
-				{{ focused.bio }}
-			</p>
+			<div
+				v-if="hasBio(focused?.bio)"
+				v-html="renderBio(focused?.bio)"
+				class="ProseMirror prose prose-sm max-w-none text-p-sm text-ink-gray-7 leading-6 mt-4 line-clamp-3"
+			></div>
 
 			<div class="mt-4 pt-4 border-t border-outline-gray-2">
 				<div
-					class="uppercase text-ink-gray-5 text-xs font-semibold tracking-wider mb-3"
+					class="uppercase text-ink-gray-5 text-xs-semibold tracking-wider mb-3"
 				>
 					{{ __('Also teaching') }}
 				</div>
@@ -66,7 +62,7 @@
 						<button
 							v-if="hiddenPeerCount > 0"
 							type="button"
-							class="-ms-1.5 flex items-center justify-center size-6 rounded-full bg-surface-gray-3 text-xs font-medium text-ink-gray-7 hover:bg-surface-gray-4 transition"
+							class="-ms-1.5 flex items-center justify-center size-6 rounded-full bg-surface-gray-3 text-xs-medium text-ink-gray-7 hover:bg-surface-gray-4 transition"
 							@click="expanded = true"
 						>
 							+{{ hiddenPeerCount }}
@@ -83,7 +79,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/UserAvatar.vue'
+import { decodeEntities, htmlToText } from '@/utils'
 import type { CourseInstructorInfo } from '@/types/api'
 
 const props = defineProps<{
@@ -141,6 +139,30 @@ const headerLabel = computed<string>(() => {
 	if (n <= 4) return __('Taught by')
 	return __('Taught by a team of {0}').format(String(n))
 })
+
+function hasBio(bio?: string | null): boolean {
+	if (!bio) return false
+	return htmlToText(bio).trim().length > 0 || /<img\b/i.test(bio)
+}
+
+function renderBio(bio?: string | null): string {
+	return DOMPurify.sanitize(decodeEntities(bio || ''), {
+		ALLOWED_TAGS: [
+			'b',
+			'i',
+			'em',
+			'strong',
+			'a',
+			'p',
+			'br',
+			'ul',
+			'ol',
+			'li',
+			'img',
+		],
+		ALLOWED_ATTR: ['href', 'target', 'rel', 'src'],
+	})
+}
 
 function profileLink(instructor: CourseInstructorInfo) {
 	return { name: 'Profile', params: { username: instructor.username } }

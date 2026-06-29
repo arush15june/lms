@@ -1,26 +1,18 @@
 <template>
 	<section class="space-y-5 border-t pt-6">
-		<div class="text-base font-semibold text-ink-gray-9">
+		<div class="text-base-semibold text-ink-gray-9">
 			{{ __('Course overview') }}
 		</div>
-		<FormControl
-			v-model="doc.video_link"
-			:label="__('Embed (preview video)')"
-			:description="__('Supports YouTube and Vimeo.')"
-			:placeholder="__('e.g. https://www.youtube.com/video')"
-			variant="outline"
-			@input="markDirty()"
-		/>
 		<div class="space-y-1.5">
 			<label
 				:for="descriptionId"
-				class="block text-p-sm font-medium text-ink-gray-7"
+				class="block text-p-sm-medium text-ink-gray-7"
 			>
 				{{ __('Course Description') }}
-				<span class="text-ink-red-3">*</span>
+				<span class="text-ink-red-6">*</span>
 			</label>
 			<div
-				class="rounded-t-lg rounded-b-md outline-none transition-[box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-within:ring-2 ring-outline-gray-3"
+				class="rounded-t-lg rounded-b-md outline-none transition-[box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
 			>
 				<TextEditor
 					:id="descriptionId"
@@ -33,25 +25,25 @@
 					"
 					:editable="true"
 					:fixedMenu="true"
-					editorClass="prose-sm max-w-none border-b border-x border-outline-gray-2 hover:border-outline-gray-3 rounded-b-md py-1 px-2 min-h-[7rem] transition-colors"
+					editorClass="prose-sm max-w-none border-b border-x border-outline-gray-2 hover:border-outline-gray-3 hover:shadow-sm focus-within:border-outline-gray-4 focus-within:shadow-sm rounded-b-md py-1 px-2 min-h-[7rem] transition-colors"
 				/>
 			</div>
 		</div>
 		<MultiLink
 			v-model="relatedCourses"
 			doctype="LMS Course"
-			:filters="{ name: ['!=', resource.doc?.name] }"
+			:filters="{ name: ['!=', resource.doc?.name], published: 1 }"
 			:label="__('Related Courses')"
 			:placeholder="__('Select related courses')"
+			:emptyText="__('No other published courses available')"
 			variant="outline"
-			:onCreate="goToCreateCourse"
 			@update:modelValue="markDirty()"
 		/>
 	</section>
 
 	<section class="space-y-5 border-t pt-6">
 		<div>
-			<div class="text-base font-semibold text-ink-gray-9">
+			<div class="text-base-semibold text-ink-gray-9">
 				{{ __('Meta Tags') }}
 			</div>
 			<div class="mt-1 text-p-sm text-ink-gray-6">
@@ -86,18 +78,11 @@
 <script setup lang="ts">
 import { TextEditor, FormControl } from 'frappe-ui'
 import { computed, inject, useId } from 'vue'
-import { useRouter } from 'vue-router'
 import MultiLink from '@/components/Controls/MultiLink.vue'
 import type { CourseFormContext } from '@/types/api'
 
 const { resource, relatedCourses, meta, markDirty } =
 	inject<CourseFormContext>('courseForm')!
-const router = useRouter()
 const doc = computed(() => resource.doc)
 const descriptionId = useId()
-
-function goToCreateCourse(close: () => void) {
-	close()
-	router.push({ name: 'Courses', query: { newCourse: '1' } })
-}
 </script>

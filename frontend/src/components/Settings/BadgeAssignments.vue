@@ -1,26 +1,17 @@
 <template>
-	<div class="text-base">
-		<div class="flex items-center justify-between gap-x-2 mb-5">
-			<div class="flex items-center gap-x-2">
-				<ChevronLeft
-					class="size-5 stroke-1.5 text-ink-gray-5 cursor-pointer"
-					@click="
-						() => {
-							show = false
-						}
-					"
-				/>
-				<div class="text-xl font-semibold text-ink-gray-9">
-					{{ props.badgeName }}
-				</div>
-			</div>
+	<SettingsLayout
+		:title="props.badgeName || ''"
+		:show-back="true"
+		@back="show = false"
+	>
+		<template #header-actions>
 			<Button @click="openForm('new')">
 				<template #prefix>
-					<Plus class="size-4 stroke-1.5" />
+					<span class="lucide-plus size-4" />
 				</template>
 				{{ __('New') }}
 			</Button>
-		</div>
+		</template>
 		<div v-if="assignments.data?.length">
 			<ListView
 				:rows="assignments.data"
@@ -74,7 +65,7 @@
 								variant="ghost"
 								@click="deleteBadgeAssignment(selections, unselectAll)"
 							>
-								<Trash2 class="h-4 w-4 stroke-1.5" />
+								<span class="lucide-trash-2 h-4 w-4" />
 							</Button>
 						</div>
 					</template>
@@ -82,8 +73,8 @@
 			</ListView>
 		</div>
 		<div v-else class="flex flex-col items-center justify-center mt-44">
-			<GraduationCap class="size-10 mx-auto stroke-1 text-ink-gray-5" />
-			<div class="text-lg font-semibold text-ink-gray-7 mb-2.5">
+			<span class="lucide-graduation-cap size-10 mx-auto text-ink-gray-5" />
+			<div class="text-xl-semibold text-ink-gray-7 mb-2.5">
 				{{ __('No Assignments') }}
 			</div>
 			<div
@@ -92,13 +83,13 @@
 				{{ __('This badge has not been assigned to any students yet') }}
 			</div>
 		</div>
-	</div>
-	<BadgeAssignmentForm
-		v-model="showForm"
-		:badgeAssignmentID="currentAssignmentID"
-		:badge="props.badgeName"
-		v-model:badgeAssignments="assignments"
-	/>
+		<BadgeAssignmentForm
+			v-model="showForm"
+			:badgeAssignmentID="currentAssignmentID"
+			:badge="props.badgeName"
+			v-model:badgeAssignments="assignments"
+		/>
+	</SettingsLayout>
 </template>
 <script setup lang="ts">
 import {
@@ -115,10 +106,10 @@ import {
 	ListSelectBanner,
 	toast,
 } from 'frappe-ui'
-import { ChevronLeft, GraduationCap, Plus, Trash2 } from 'lucide-vue-next'
 import { computed, inject, ref } from 'vue'
 import type { BadgeAssignment } from '@/components/Settings/types'
 import BadgeAssignmentForm from '@/components/Settings/BadgeAssignmentForm.vue'
+import SettingsLayout from '@/components/Layouts/SettingsLayout.vue'
 
 const show = defineModel<boolean>()
 const dayjs = inject('$dayjs') as any
