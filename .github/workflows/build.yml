@@ -1,33 +1,37 @@
 name: Build Container Image
+
 on:
   workflow_dispatch:
+
   push:
     branches:
       - main
     tags:
       - "*"
+
 jobs:
   build:
-    name: Build
+    name: Build Multi-Arch Image
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
+
     permissions:
+      contents: read
       packages: write
+
     env:
       APPS_JSON_PATH: /tmp/apps.json
+      FRAPPE_BRANCH: version-15
+      IMAGE_TAG: stable
+
     steps:
-      - name: Checkout Entire Repository
-        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/${{ matrix.arch }}
+
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -37,31 +41,45 @@ jobs:
         run: |
           cat > "$APPS_JSON_PATH" <<'EOF'
           [
-            {"url": "https://github.com/frappe/payments", "branch": "version-15"},
-            {"url": "https://github.com/arush15june/lms", "branch": "develop"}
+            {
+              "url": "https://github.com/frappe/payments",
+              "branch": "version-15"
+            },
+            {
+              "url": "https://github.com/arush15june/lms",
+              "branch": "develop"
+            }
           ]
           EOF
 
-      - name: Set Image Tag
-        run: |
-          echo "IMAGE_TAG=stable" >> $GITHUB_ENV
-          echo "FRAPPE_BRANCH=version-15" >> $GITHUB_ENV
-
-      - uses: actions/checkout@v4
+      - name: Checkout frappe_docker
+        uses: actions/checkout@v4
         with:
           repository: frappe/frappe_docker
           path: builds
 
-      - name: Build and push
+      - name: Build and Push Multi-Arch Image
         uses: docker/build-push-action@v7
         with:
-          push: true
           context: builds
-          file: builds/images/layered/Containerfile
-          tags: >
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }},
+          file: builds/images/custom/Containerfile
+
+          platforms: linux/amd64,linux/arm64
+
+          push: true
+
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}:${{ env.IMAGE_TAG }}
+
           build-args: |
             FRAPPE_BRANCH=${{ env.FRAPPE_BRANCH }}
+            FRAPPE_PATH=https://github.com/frappe/frappe
+            PYTHON_VERSION=3.11.6
+            NODE_VERSION=22.23.2
+
           secret-files: |
             apps_json=${{ env.APPS_JSON_PATH }}
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
