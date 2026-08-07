@@ -1,7 +1,6 @@
 <template>
 	<SettingsLayout
-		:title="__('Transaction Details')"
-		:description="__('Review and update the details of this payment.')"
+		:title="transactionData?.billing_name || __('Transaction Details')"
 		:show-back="true"
 		@back="emit('updateStep', 'list')"
 	>
@@ -11,6 +10,7 @@
 					transactionData?.payment_for_document_type &&
 					transactionData?.payment_for_document
 				"
+				class="text-p-base-medium"
 				@click="openDetails()"
 			>
 				{{ __('Open the ') }}
@@ -142,6 +142,7 @@
 					v-model="transactionData.address"
 					doctype="Address"
 					:required="!!fieldMeta.address?.reqd"
+					:onCreate="() => (showAddressModal = true)"
 				/>
 				<FormControl
 					:label="__('GSTIN')"
@@ -165,6 +166,7 @@
 				/>
 			</div>
 		</div>
+		<AddressModal v-model:show="showAddressModal" @created="onAddressCreated" />
 	</SettingsLayout>
 </template>
 <script setup lang="ts">
@@ -174,9 +176,15 @@ import { computed, ref, watch } from 'vue'
 import Link from '@/components/Controls/Link.vue'
 import SettingsLayout from '@/components/Layouts/SettingsLayout.vue'
 import Select from '@/components/Controls/Select.vue'
+import AddressModal from '@/components/Settings/Transactions/AddressModal.vue'
 
 const router = useRouter()
 const transactionData = ref<{ [key: string]: any } | null>(null)
+const showAddressModal = ref<boolean>(false)
+
+const onAddressCreated = (name: string) => {
+	if (transactionData.value) transactionData.value.address = name
+}
 const emit = defineEmits(['updateStep'])
 const show = defineModel('show')
 

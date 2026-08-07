@@ -194,7 +194,7 @@ import CollapsibleSection from '@/components/CollapsibleSection.vue'
 import Link from '@/components/Controls/Link.vue'
 import NewMemberModal from '@/components/Modals/NewMemberModal.vue'
 import { useSettings } from '@/stores/settings'
-import type { CourseFormContext, Resource } from '@/types/api'
+import type { CourseFormContext, Resource } from '@/types'
 
 const { resource, markDirty } = inject<CourseFormContext>('courseForm')!
 const dayjs = inject('$dayjs') as typeof import('dayjs')
@@ -235,7 +235,7 @@ function setPaidCourse(val: boolean) {
 		return
 	}
 	resource.doc.paid_course = val ? 1 : 0
-	// A paid course is already monetized — the paid-certificate flow only
+	// A paid course is already monetized: the paid-certificate flow only
 	// applies to free courses, so clear it when switching to paid.
 	if (val) resource.doc.paid_certificate = 0
 	markDirty()

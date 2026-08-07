@@ -10,7 +10,6 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import EditorJS from '@editorjs/editorjs'
 import DragDrop from 'editorjs-drag-drop'
 import { enablePlyr, getEditorTools, getEditorTunes } from '@/utils'
-import { handleBlockClipboardShortcut } from '@/utils/blockTunes/clipboardTunes'
 
 const props = defineProps({
 	uploadContext: {
@@ -25,8 +24,8 @@ const holderRef = ref(null)
 let editor = null
 
 // Clicking the empty area below the last block (the redactor's bottom padding)
-// drops the caret into a fresh block — or focuses the last one if it's already
-// empty — so you can keep writing without hunting for the "+" handle. Detect
+// drops the caret into a fresh block (or focuses the last one if it's already
+// empty) so you can keep writing without hunting for the "+" handle. Detect
 // "below the last block" geometrically (click Y past the last block's bottom)
 // so it works regardless of which element receives the click.
 function handleBelowLastBlockClick(e) {
@@ -74,13 +73,6 @@ function ensureTrailingBlock() {
 	}
 }
 
-// Cut/Copy/Paste on a block selection, without stealing the browser's native
-// text clipboard. Capture phase so we decide before EditorJS sees the key.
-function handleClipboardKeydown(e) {
-	if (!editor) return
-	handleBlockClipboardShortcut(editor, e)
-}
-
 onMounted(() => {
 	editor = new EditorJS({
 		holder: holderRef.value,
@@ -92,7 +84,7 @@ onMounted(() => {
 		},
 		onReady: () => {
 			// onReady can fire after the component unmounted (fast nav / deleting
-			// the open lesson) — by then onBeforeUnmount has nulled `editor`. Bail
+			// the open lesson); by then onBeforeUnmount has nulled `editor`. Bail
 			// so we don't call `new DragDrop(null)`, whose constructor reads
 			// editor.configuration and throws.
 			if (!editor) return
@@ -101,7 +93,6 @@ onMounted(() => {
 			// that settings button a drag handle so blocks reorder by dragging.
 			new DragDrop(editor)
 			holderRef.value?.addEventListener('click', handleBelowLastBlockClick)
-			holderRef.value?.addEventListener('keydown', handleClipboardKeydown, true)
 		},
 		onChange: async () => {
 			enablePlyr()
@@ -115,7 +106,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 	holderRef.value?.removeEventListener('click', handleBelowLastBlockClick)
-	holderRef.value?.removeEventListener('keydown', handleClipboardKeydown, true)
 	const instance = editor
 	editor = null
 	instance?.isReady.then(() => instance.destroy()).catch(() => {})

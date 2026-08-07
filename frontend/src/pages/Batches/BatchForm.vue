@@ -3,9 +3,9 @@
 		<div class="grid grid-cols-1 lg:grid-cols-[3fr,2fr]">
 			<div v-if="batchDetail.doc" class="py-5 lg:h-[88vh] lg:overflow-y-auto">
 				<div class="px-5 pb-5 space-y-5 border-b mb-5">
-					<div class="text-base-semibold text-ink-gray-9">
+					<h2 class="text-base-semibold text-ink-gray-9">
 						{{ __('Details') }}
-					</div>
+					</h2>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 						<FormControl
@@ -38,35 +38,29 @@
 							variant="outline"
 						/>
 
-						<!-- beta.7's TimePicker (FormControl type="time") ignores the
-						     `label` prop, so render FormLabel explicitly like Timezone
-						     below — otherwise these fields show only the placeholder. -->
-						<div class="space-y-1.5">
-							<FormLabel :label="__('Session Start Time')" :required="true" />
-							<FormControl
-								v-model="batchDetail.doc.start_time"
-								type="time"
-								variant="outline"
-							/>
-						</div>
-						<div class="space-y-1.5">
-							<FormLabel :label="__('Session End Time')" :required="true" />
-							<FormControl
-								v-model="batchDetail.doc.end_time"
-								type="time"
-								variant="outline"
-							/>
-						</div>
-						<div class="flex flex-col gap-1.5">
-							<FormLabel :label="__('Timezone')" :required="true" />
-							<Combobox
-								v-model="batchDetail.doc.timezone"
-								:options="timezoneOptions"
-								:placeholder="__('Select timezone')"
-								variant="outline"
-								class="w-full"
-							/>
-						</div>
+						<FormControl
+							v-model="batchDetail.doc.start_time"
+							type="time"
+							:label="__('Session Start Time')"
+							:required="true"
+							variant="outline"
+						/>
+						<FormControl
+							v-model="batchDetail.doc.end_time"
+							type="time"
+							:label="__('Session End Time')"
+							:required="true"
+							variant="outline"
+						/>
+						<Combobox
+							v-model="batchDetail.doc.timezone"
+							:options="timezoneOptions"
+							:placeholder="__('Select timezone')"
+							:label="__('Timezone')"
+							:required="true"
+							variant="outline"
+							class="w-full"
+						/>
 
 						<FormControl
 							v-model="batchDetail.doc.seat_count"
@@ -79,9 +73,9 @@
 				</div>
 
 				<div class="px-5 pb-5 space-y-5 border-b mb-5">
-					<div class="text-base-semibold text-ink-gray-9">
+					<h2 class="text-base-semibold text-ink-gray-9">
 						{{ __('Enrollment & Certification') }}
-					</div>
+					</h2>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
 						<BooleanSwitch
 							size="sm"
@@ -142,9 +136,9 @@
 				</div>
 
 				<div class="px-5 pb-5 space-y-5 border-b mb-5">
-					<div class="text-base-semibold text-ink-gray-9">
+					<h2 class="text-base-semibold text-ink-gray-9">
 						{{ __('Batch overview') }}
-					</div>
+					</h2>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 						<MultiLink
 							v-model="instructors"
@@ -181,7 +175,6 @@
 							v-model="batchDetail.doc.description"
 							:label="__('Short Description')"
 							type="textarea"
-							:rows="4"
 							:placeholder="__('Short description of the batch')"
 							:required="true"
 							variant="outline"
@@ -193,15 +186,16 @@
 						:label="__('Preview Video')"
 					/>
 					<div class="space-y-1.5">
-						<FormLabel
+						<InputLabel
+							:id="batchDetailsLabelId"
+							:for-id="batchDetailsId"
 							:label="__('Batch Details')"
-							:id="batchDetailsId"
 							:required="true"
 						/>
 						<div
 							class="rounded-t-lg rounded-b-md outline-none transition-[box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
 						>
-							<TextEditor
+							<RichTextEditor
 								:id="batchDetailsId"
 								:content="batchDetail.doc.batch_details"
 								@change="(val: string) => updateBatchDetails(val)"
@@ -214,9 +208,9 @@
 				</div>
 
 				<div class="px-5 pb-5 space-y-5 border-b mb-5">
-					<div class="text-base-semibold text-ink-gray-9">
+					<h2 class="text-base-semibold text-ink-gray-9">
 						{{ __('Conferencing') }}
-					</div>
+					</h2>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 						<Select
 							v-model="batchDetail.doc.conferencing_provider"
@@ -253,22 +247,20 @@
 				</div>
 
 				<div class="px-5 pb-5 space-y-5">
-					<div class="text-base-semibold text-ink-gray-9">
+					<h2 class="text-base-semibold text-ink-gray-9">
 						{{ __('Meta Tags') }}
-					</div>
+					</h2>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 						<FormControl
 							v-model="meta.description"
 							:label="__('Meta Description')"
 							type="textarea"
-							:rows="4"
 							variant="outline"
 						/>
 						<FormControl
 							v-model="meta.keywords"
 							:label="__('Meta Keywords')"
 							type="textarea"
-							:rows="4"
 							:placeholder="__('Comma separated keywords')"
 							variant="outline"
 						/>
@@ -314,19 +306,17 @@ import {
 	toRaw,
 	watch,
 	nextTick,
-	useId,
 } from 'vue'
 import {
 	Combobox,
 	FormControl,
-	FormLabel,
-	TextEditor,
 	createDocumentResource,
 	createResource,
 	toast,
 	call,
 	createListResource,
 } from 'frappe-ui'
+import { InputLabel, useInputLabeling } from '@/components/Form/labeling'
 import { useDebounceFn } from '@vueuse/core'
 import BooleanSwitch from '@/components/Controls/BooleanSwitch.vue'
 import {
@@ -352,7 +342,8 @@ import NewMemberModal from '@/components/Modals/NewMemberModal.vue'
 import EmailTemplateModal from '@/components/Modals/EmailTemplateModal.vue'
 import type { LMSBatch } from '@/types/lms/LMSBatch'
 import type { CourseInstructor } from '@/types/lms/CourseInstructor'
-import type { Resource, BatchDetails, SessionUser } from '@/types/api'
+import type { Resource, BatchDetails, SessionUser } from '@/types'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 
 interface DialogAction {
 	label: string
@@ -379,7 +370,8 @@ const { $dialog } = app.appContext.config.globalProperties as {
 }
 const isDirty = ref<boolean>(false)
 const originalDoc = ref<LMSBatch | null>(null)
-const batchDetailsId = useId()
+const { inputId: batchDetailsId, labelId: batchDetailsLabelId } =
+	useInputLabeling({})
 const showMemberModal = ref<boolean>(false)
 const showEmailTemplateModal = ref<boolean>(false)
 const emailTemplateLinkRef = ref<{ reload: () => void } | null>(null)
@@ -436,7 +428,7 @@ let lastAutoSaveError: string | null = null
 
 // Debounced so a burst of edits collapses into a single save shortly after the
 // user pauses (mirrors CourseForm). When a mandatory field is empty or the
-// amount is invalid, the autosave can't succeed — surface the reason once and
+// amount is invalid, the autosave can't succeed. Surface the reason once and
 // keep the "Not Saved" badge (isDirty stays true) so the change isn't lost.
 const autoSave = useDebounceFn((): void => {
 	if (!isDirty.value) return

@@ -43,19 +43,19 @@
 					v-model="template.response_html"
 					type="textarea"
 					:required="true"
-					:rows="10"
 					:placeholder="
 						__(
 							'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>Frappe Learning</p>'
 						)
 					"
 				/>
-				<div v-else>
-					<div class="text-p-sm-medium text-ink-gray-7 mb-1.5">
-						{{ __('Content') }}
-						<span class="text-ink-red-6">*</span>
-					</div>
-					<TextEditor
+				<div v-else class="space-y-1.5">
+					<InputLabel
+						:id="contentLabelId"
+						:label="__('Content')"
+						:required="true"
+					/>
+					<RichTextEditor
 						:content="template.response"
 						@change="(val) => (template.response = val)"
 						:editable="true"
@@ -73,10 +73,14 @@
 	</Dialog>
 </template>
 <script setup lang="ts">
-import { call, Dialog, FormControl, TextEditor, toast } from 'frappe-ui'
+import { call, Dialog, FormControl, toast } from 'frappe-ui'
 import BooleanSwitch from '@/components/Controls/BooleanSwitch.vue'
-import { reactive, watch } from 'vue'
+import { reactive, watch, useId } from 'vue'
+import { InputLabel } from '@/components/Form/labeling'
 import { cleanError } from '@/utils'
+import RichTextEditor from '@/components/RichTextEditor.vue'
+
+const contentLabelId = useId()
 
 const props = defineProps({
 	templateID: {

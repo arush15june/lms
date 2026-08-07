@@ -33,7 +33,7 @@
 				:hoverDelay="1.5"
 			>
 				<span
-					class="min-w-0 truncate text-sm duration-300 ease-in-out"
+					class="min-w-0 truncate text-p-sm duration-300 ease-in-out"
 					:class="
 						isCollapsed
 							? 'ms-0 w-0 overflow-hidden opacity-0'
@@ -51,7 +51,7 @@
 			/>
 			<span
 				v-if="link.count && !isCollapsed"
-				class="!ms-auto block text-xs text-ink-gray-5"
+				class="!ms-auto block text-p-xs text-ink-gray-5"
 				:class="
 					isCollapsed && link.count > 9
 						? 'absolute top-[2px] end-0 bg-surface-base'
@@ -62,7 +62,7 @@
 			</span>
 			<div
 				v-if="showControls && !isCollapsed"
-				class="flex items-center gap-x-2 !ms-auto block text-xs text-ink-gray-5 group-hover:visible invisible"
+				class="flex items-center gap-x-2 !ms-auto block text-p-xs text-ink-gray-5 group-hover:visible invisible"
 			>
 				<component
 					:is="icons['Edit']"
@@ -87,7 +87,7 @@ import ContactUsEmail from '@/components/ContactUsEmail.vue'
 import * as icons from 'lucide-vue-next'
 import { toggleNotifications } from '@/stores/notifications'
 import { useSettings } from '@/stores/settings'
-import type { SidebarLink } from '@/types/sidebar'
+import type { SidebarLink } from '@/types'
 
 const router = useRouter()
 const settingsStore = useSettings()

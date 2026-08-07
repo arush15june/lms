@@ -1,8 +1,8 @@
 <template>
-	<Dialog v-model="show" :options="{ size: '4xl' }">
-		<template #body-title>
+	<Dialog v-model="show" size="4xl">
+		<template #title>
 			<div class="flex items-center gap-x-2">
-				<div class="text-xl font-semibold text-ink-gray-9">
+				<div class="text-lg font-semibold text-ink-gray-9">
 					{{
 						props.exerciseID === 'new'
 							? __('Create Programming Exercise')
@@ -14,7 +14,7 @@
 				</Badge>
 			</div>
 		</template>
-		<template #body-content>
+		<template #default>
 			<div class="grid grid-cols-2 gap-10">
 				<div class="space-y-4">
 					<FormControl
@@ -41,12 +41,13 @@
 					/>
 				</div>
 				<div>
-					<div>
-						<div class="text-p-sm-medium text-ink-gray-7 mb-1.5">
-							{{ __('Problem Statement') }}
-							<span class="text-ink-red-3">*</span>
-						</div>
-						<TextEditor
+					<div class="space-y-1.5">
+						<InputLabel
+							:id="problemStatementLabelId"
+							:label="__('Problem Statement')"
+							:required="true"
+						/>
+						<RichTextEditor
 							:content="exercise.problem_statement"
 							@change="(val: string) => (exercise.problem_statement = val)"
 							:editable="true"
@@ -80,7 +81,7 @@
 						},
 					}"
 				>
-					<Button>
+					<Button class="text-p-base-medium">
 						<template #prefix>
 							<span class="lucide-play size-4" />
 						</template>
@@ -111,7 +112,8 @@
 	</Dialog>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, useId } from 'vue'
+import { InputLabel } from '@/components/Form/labeling'
 import { sanitizeHTML } from '@/utils'
 import {
 	Badge,
@@ -119,11 +121,13 @@ import {
 	createListResource,
 	Dialog,
 	FormControl,
-	TextEditor,
 	toast,
 } from 'frappe-ui'
-import { ProgrammingExercise, ProgrammingExercises, TestCase } from './types'
+import { ProgrammingExercise, ProgrammingExercises, TestCase } from '@/types'
 import ChildTable from '@/components/Controls/ChildTable.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
+
+const problemStatementLabelId = useId()
 
 const show = defineModel()
 const exercises = defineModel<ProgrammingExercises>('exercises')

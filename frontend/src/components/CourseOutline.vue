@@ -9,7 +9,7 @@
 			}"
 		>
 			<div
-				class="text-xl-semibold leading-5 text-ink-gray-9"
+				class="text-lg-semibold leading-5 text-ink-gray-9"
 				:class="{ 'font-medium text-p-base': allowEdit }"
 			>
 				{{ __(title) }}
@@ -98,7 +98,7 @@ import type {
 	OutlineLesson,
 	Resource,
 	SessionUser,
-} from '@/types/api'
+} from '@/types'
 
 interface DraggableEvent {
 	item: { __draggable_context: { element: OutlineChapter | OutlineLesson } }
@@ -124,7 +124,7 @@ const user = inject<SessionUser>('$user')!
 const router = useRouter()
 const showChapterModal = ref<boolean>(false)
 const currentChapter = ref<OutlineChapter | null>(null)
-// True while a ChapterRow is in inline-rename mode — locks chapter drag.
+// True while a ChapterRow is in inline-rename mode; locks chapter drag.
 const chapterRenaming = ref<boolean>(false)
 const { $dialog } = getCurrentInstance()!.appContext.config
 	.globalProperties as {
@@ -209,6 +209,11 @@ const deleteLesson = createResource({
 		outline.reload()
 		toast.success(__('Lesson deleted successfully'))
 	},
+	onError(err: { messages?: string[] } | string) {
+		toast.error(
+			typeof err === 'string' ? err : err.messages?.[0] ?? __('Error')
+		)
+	},
 })
 
 const updateLessonIndex = createResource({
@@ -247,6 +252,11 @@ const deleteChapter = createResource({
 		outline.reload()
 		toast.success(__('Chapter deleted successfully'))
 	},
+	onError(err: { messages?: string[] } | string) {
+		toast.error(
+			typeof err === 'string' ? err : err.messages?.[0] ?? __('Error')
+		)
+	},
 })
 
 const renameChapterResource = createResource({
@@ -278,7 +288,7 @@ const errorMessage = (err: { messages?: string[] } | string): string =>
 	typeof err === 'string' ? err : err.messages?.[0] ?? 'Error'
 
 // Inserts the Course Lesson and its chapter reference in one request, so a
-// failure on either rolls back atomically — no orphaned lesson. Returns the
+// failure on either rolls back atomically: no orphaned lesson. Returns the
 // new lesson's docname.
 const addLesson = createResource({
 	url: 'lms.lms.api.create_lesson',
@@ -325,7 +335,7 @@ function navigateToLesson(lesson: OutlineLesson) {
 			name: 'CourseDetail',
 			params: { courseName: props.courseName },
 			hash: '#course editor',
-			query: { editLesson: lesson.number, lessonMode: 'edit' },
+			query: { editLesson: lesson.number },
 		})
 	}
 }
@@ -343,7 +353,7 @@ function trashLesson(lessonName: string, chapterName: string) {
 				variant: 'solid',
 				onClick(close) {
 					// Per-call onSuccess closes over this lessonName, so the editor is
-					// told exactly which lesson went — no shared slot to drift on
+					// told exactly which lesson went: no shared slot to drift on
 					// concurrent deletes. Runs alongside the resource-level reload.
 					deleteLesson.submit(
 						{ lesson: lessonName, chapter: chapterName },

@@ -5,7 +5,7 @@
 				<div class="flex items-center justify-between">
 					<TabButtons
 						v-if="tabs.length > 1"
-						:buttons="tabs"
+						:options="tabs"
 						v-model="currentTab"
 						class="w-fit"
 					/>
@@ -35,6 +35,7 @@
 							</div>
 							<div
 								v-for="row in currentTabData"
+								:key="row.name"
 								class="hover:bg-surface-gray-1 cursor-pointer rounded-md py-1 px-2"
 							>
 								<router-link
@@ -44,7 +45,7 @@
 									}"
 								>
 									<div class="grid grid-cols-[70%,30%] items-center">
-										<div class="flex items-center gap-x-2">
+										<div class="flex items-center gap-x-3">
 											<Avatar
 												:image="row.member_image"
 												:label="row.member_name"
@@ -130,7 +131,6 @@ const statistics = createListResource({
 		'source',
 		'watch_time',
 	],
-	cache: ['videoStatistics', props.lessonName],
 	onSuccess() {
 		currentTab.value = Object.keys(statisticsData.value)[0]
 	},

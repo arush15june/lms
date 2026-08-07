@@ -1,7 +1,7 @@
 <template>
 	<Dialog v-model:open="show" size="2xl">
 		<template #title>
-			<div v-if="program.data" class="text-3xl-semibold text-ink-gray-9">
+			<div v-if="program.data" class="text-2xl-semibold text-ink-gray-9">
 				{{ __('Enrollment for Program {0}').format(program.data?.name) }}
 			</div>
 		</template>
@@ -41,6 +41,7 @@
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
 						<div
 							v-for="course in program.data.courses"
+							:key="course.name"
 							class="flex flex-col border border-outline-gray-2 p-2 rounded-md h-full"
 						>
 							<div class="font-semibold text-ink-gray-9 leading-5 mb-2">
@@ -78,7 +79,7 @@
                                 </Tooltip> -->
 							</div>
 
-							<div class="flex items-center gap-x-1 mt-auto">
+							<div class="flex items-center gap-x-2.5 mt-auto">
 								<UserAvatar :user="course.instructors[0]" />
 								<span class="text-ink-gray-9">
 									{{ course.instructors[0].full_name }}
